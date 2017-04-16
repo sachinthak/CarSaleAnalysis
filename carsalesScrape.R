@@ -5,10 +5,10 @@
 ## make = make of the vehicle, e.g. Volkswagen
 ## model = model of vehicle, e.g. Golf
 ## limit = the amount of results to pull in per page (maximum currently 60)
+## minPrice = minimum price of the vehicle
+## maxPrice = maximum price of the vehicle
 
-
-carsalesScrape <- function(make="Volkswagen", model = '', minPrice = 0, maxPrice = 500000, limit=60, maxResults = 30000){
-  
+carsalesScrape <- function(make="Volkswagen", model = '', minPrice = 0, maxPrice = 50000, limit=60, maxResults = 30000){
 
   
   # Clean up parameters
@@ -30,13 +30,14 @@ carsalesScrape <- function(make="Volkswagen", model = '', minPrice = 0, maxPrice
   totalResults <- NULL
   print(paste("number of results:",numResults[1]))
   
+
   
   ## Iteratively pull in blocks of results based on totalResults divided by limit argument
   for (i in 0:(ceiling(min(numResults[1],maxResults)/limit)-1)){
     
     print (paste0("getting results: loop ",i+1," of ",(ceiling(min(numResults[1],maxResults)/limit))))
     flush.console()
-    fOffset <- i * resultsPerPage
+    fOffset <- i * limit
     fileUrl <- paste0('https://www.carsales.com.au/cars/results?offset=',fOffset,'&setype=pagination&q=%28And.Service.Carsales._.%28C.Make.',make,'._.Model.',model,'.%29_.Price.range%28',minPrice,'..',maxPrice,'%29.%29&limit=',limit,'&area=Stock&vertical=car&WT.z_srchsrcx=makemodel')
     totalResults <- c(totalResults,getURL(fileUrl,ssl.verifypeer=FALSE))
   }
