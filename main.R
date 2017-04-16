@@ -22,7 +22,7 @@ fitrf <- randomForest( price ~ make + Body + model + year + Odometer + state +
                      importance=TRUE, 
                      ntree=500)
 
-fitlmer <- lmer(dat, formula = 'log(price) ~ 1 + log(year) + log(Odometer) + (1|Body) + (1|state) + (1|Transmission) + (1|make) + (1 |make:model) + (1 |adType)')
+fitlmer <- lmer(dat, formula = 'log(price) ~ 1 + log(year) + log(Odometer) + (1|Body) + (1|state) + (1|Transmission)  + (1 | make:model) + (1 |adType)')
 
 # calculate R2
 predlm <- predict(fitlm, dat)
@@ -54,7 +54,7 @@ datPred <- data.table(
   Transmission = 'Automatic',
   state = 'VIC',
   Body = 'Hatch',
-  adType = 'Used Car'
+  adType = 'Private Seller Car'
 )
 
 preds_lmer <- predictInterval(fitlmer, newdata = datPred, n.sims = 999, returnSims = T, level = .95)
@@ -82,14 +82,30 @@ quantile(resrf$individual,c(.5,.025,.975))
 
 
 
+# do some plotting to compare different model fits
 
-ggplot(dat[make == 'MAZDA' & model == '2']) + geom_point(aes(x=log(price), y=predlm,col = state)) + 
-  geom_abline(slope = 1, intercept = 0, col = 'red') + coord_fixed()
+pred_lmer <- predict(fitlmer,dat[make == make_pred & model == model_pred])
+pred_lm <- predict(fitlm,dat[make == make_pred & model == model_pred])
+pred_lm_no_pool <- predict(fitlm_no_pool,dat[make == make_pred & model == model_pred])
+pred_rf <- predict(fitrf,dat[make == make_pred & model == model_pred])
 
-predlmer <- predict(fitlmer, dat[make == 'TOYOTA' & model == 'YARIS'])
-ggplot(dat[make == 'TOYOTA' & model == 'YARIS']) + geom_point(aes(x=log(price), y=predlmer,col = adType)) + 
-  geom_abline(slope = 1, intercept = 0, col = 'red') + coord_fixed()
+datVis <- copy(dat[make == make_pred & model == model_pred])
+datVis[,':='(multLevel = pred_lmer, compPool = pred_lm, noPool = pred_lm_no_pool,
+             randomForest = log(pred_rf))]
+idVar = c("make", "model" , "year" ,"Body", "Odometer", "Transmission",
+          "price",  "state", "adType" )
+measVar = c("multLevel","compPool", "noPool", "randomForest")
+datVis <- melt(datVis,id.vars = idVar, measure.vars = measVar, variable.name = 'method', value.name = 'prediction')
 
-predlmer[which(predlmer>9.8)]
-exp(predict(fitlm,datPred,interval = 'prediction',level = .95))
+# fitted vs observed
+ggplot(datVis,aes(x = log(price), y = prediction)) + geom_point() + 
+#  geom_smooth(method = 'loess',se = T, col = 'black',alpha = .5) +
+  geom_abline(slope = 1, intercept = 0, col = 'red') + facet_grid( method ~.)
 
+# residuals vs fitted observed vs 
+ggplot(datVis,aes(x = log(price), y = log(price) - prediction)) + geom_point() + 
+  #  geom_smooth(method = 'loess',se = T, col = 'black',alpha = .5) +
+  geom_abline(slope = 0, intercept = 0, col = 'red') + facet_grid( method ~.)
+
+
+datVis[,1 - sum((log(price)-prediction)^2)/sum((log(price)-mean(prediction))^2), by = method ]
