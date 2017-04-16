@@ -7,6 +7,9 @@ library(lme4)
 library(randomForest)
 library(ggplot2)
 library(merTools)
+library(sjPlot)
+library(sjmisc)
+
 source('dataRead.R')
 
 
@@ -22,7 +25,7 @@ fitrf <- randomForest( price ~ make + Body + model + year + Odometer + state +
                      importance=TRUE, 
                      ntree=500)
 
-fitlmer <- lmer(dat, formula = 'log(price) ~ 1 + log(year) + log(Odometer) + (1|Body) + (1|state) + (1|Transmission)  + (1 | make:model) + (1 |adType)')
+fitlmer <- lmer(dat, formula = 'log(price) ~ 1 + log(year) + log(Odometer) + (1|Body) + (1|state) + (1|Transmission) + (1 | make:model)  + (1 |adType)')
 
 # calculate R2
 predlm <- predict(fitlm, dat)
@@ -44,17 +47,17 @@ ggplot(dat) + geom_point(aes(x=dat$price, y=predrf,col = state)) +
 
 # predict for some specific instances
 
-make_pred <-  'MAZDA'
-model_pred <- '2'
+make_pred <-  'NISSAN'
+model_pred <- 'PULSAR'
 datPred <- data.table(
   make = make_pred,
   model = model_pred,
-  year = 2012,
-  Odometer = 76000,
+  year = 2015,
+  Odometer = 37089,
   Transmission = 'Automatic',
   state = 'VIC',
   Body = 'Hatch',
-  adType = 'Private Seller Car'
+  adType = 'Used Car'
 )
 
 preds_lmer <- predictInterval(fitlmer, newdata = datPred, n.sims = 999, returnSims = T, level = .95)
