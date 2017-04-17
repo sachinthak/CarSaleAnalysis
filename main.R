@@ -16,6 +16,7 @@ source('dataRead.R')
 #fetchData()
 dat <- readData()
 
+dat <- dat[make %in% c('TOYOTA','FORD','MAZDA')]
 # fit some  models
 fitlm <- lm(dat, formula = 'log(price) ~ 1 + make + Body + model  + log(year) + log(Odometer) + state + adType')
 
@@ -25,7 +26,7 @@ fitrf <- randomForest( price ~ make + Body + model + year + Odometer + state +
                      importance=TRUE, 
                      ntree=500)
 
-fitlmer <- lmer(dat, formula = 'log(price) ~ 1 + log(year) + log(Odometer) + (1|Body) + (1|state) + (1|Transmission) + (1 | make:model)  + (1 |adType)')
+fitlmer <- lmer(dat, formula = 'log(price) ~ 1 + log(year) + log(Odometer) + (1|Body) + (1|state) + (1|Transmission) + (1|make) + (1 | make:model)  + (1 |adType)')
 
 # calculate R2
 predlm <- predict(fitlm, dat)
@@ -37,6 +38,8 @@ predrf <- predict(fitrf,dat)
 1-sum((dat$price-predrf)^2)/sum((dat$price-mean(dat$price))^2) 
 
 # do some plotting
+sjp.lmer(fitlmer, y.offset = .4)
+
 ggplot(dat) + geom_point(aes(x=log(dat$price), y=predlmer,col = state)) + 
   geom_abline(slope = 1, intercept = 0, col = 'red')
 
@@ -47,20 +50,33 @@ ggplot(dat) + geom_point(aes(x=dat$price, y=predrf,col = state)) +
 
 # predict for some specific instances
 
-make_pred <-  'NISSAN'
-model_pred <- 'PULSAR'
+make_pred <-  'TOYOTA'
+model_pred <- 'YARIS'
 datPred <- data.table(
   make = make_pred,
   model = model_pred,
-  year = 2015,
-  Odometer = 37089,
+  year = 2008,
+  Odometer = 51500,
   Transmission = 'Automatic',
   state = 'VIC',
   Body = 'Hatch',
   adType = 'Used Car'
 )
 
-preds_lmer <- predictInterval(fitlmer, newdata = datPred, n.sims = 999, returnSims = T, level = .95)
+# make_pred <-  'MAZDA'
+# model_pred <- '2'
+# datPred <- data.table(
+#   make = make_pred,
+#   model = model_pred,
+#   year = 2009,
+#   Odometer = 86232,
+#   Transmission = 'Automatic',
+#   state = 'VIC',
+#   Body = 'Hatch',
+#   adType = 'Used Car'
+# )
+
+preds_lmer <- predictInterval(fitlmer, newdata = datPred, n.sims = 999, level = .95,  returnSims = T)
 exp(preds_lmer)
 
 # try fitting a completely pooled linear model
@@ -105,7 +121,7 @@ ggplot(datVis,aes(x = log(price), y = prediction)) + geom_point() +
 #  geom_smooth(method = 'loess',se = T, col = 'black',alpha = .5) +
   geom_abline(slope = 1, intercept = 0, col = 'red') + facet_grid( method ~.)
 
-# residuals vs fitted observed vs 
+# residuals vs  observed 
 ggplot(datVis,aes(x = log(price), y = log(price) - prediction)) + geom_point() + 
   #  geom_smooth(method = 'loess',se = T, col = 'black',alpha = .5) +
   geom_abline(slope = 0, intercept = 0, col = 'red') + facet_grid( method ~.)

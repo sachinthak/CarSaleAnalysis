@@ -1,4 +1,4 @@
-
+## Special thanks to David Fraser for the original code
 ## A function that 'scrapes' results from carsales.com.au for currently advertised 'used' cars (private and dealer)
 
 ## args:
